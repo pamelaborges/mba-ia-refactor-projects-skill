@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from flask import request, jsonify
 from sqlalchemy import func
@@ -8,6 +8,7 @@ from database import db
 from models.task import Task
 from models.user import User
 from models.category import Category
+from utils.time import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -38,10 +39,10 @@ def summary_report():
                 'id': t.id,
                 'title': t.title,
                 'due_date': str(t.due_date),
-                'days_overdue': (datetime.utcnow() - t.due_date).days
+                'days_overdue': (utc_now() - t.due_date).days
             })
 
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    seven_days_ago = utc_now() - timedelta(days=7)
     recent_tasks = Task.query.filter(Task.created_at >= seven_days_ago).count()
 
     recent_done = Task.query.filter(
@@ -71,7 +72,7 @@ def summary_report():
         })
 
     report = {
-        'generated_at': str(datetime.utcnow()),
+        'generated_at': str(utc_now()),
         'overview': {
             'total_tasks': total_tasks,
             'total_users': total_users,
@@ -108,6 +109,8 @@ def user_report(user_id):
     user = User.query.get(user_id)
     if not user:
         return jsonify({'error': 'Usuário não encontrado'}), 404
+    if request.current_user.id != user.id and not request.current_user.is_admin():
+        return jsonify({'error': 'Você só pode consultar o próprio relatório'}), 403
 
     tasks = Task.query.filter_by(user_id=user_id).all()
 

@@ -21,7 +21,7 @@ estrutural, não sintático: nenhuma rota verifica identidade, e o campo
 |---|:----------:|---|---|---|---|
 | 1 | CRITICAL | Exposição de dados sensíveis | `models/user.py:16-25` | `to_dict()` inclui `password`; vaza em `GET /users`, `POST /users`, `PUT /users` e no `/login` | Serialização com allowlist |
 | 2 | CRITICAL | Criptografia insegura | `models/user.py:27-32` | MD5 sem salt, senha mínima de 4 caracteres | bcrypt/argon2 |
-| 3 | CRITICAL | Ausência de autenticação/autorização | `routes/*` (todas as rotas) | token do login (`user_routes.py:210`) nunca é verificado em nenhuma rota; `PUT /users/<id>` aceita mudança de `role` sem checagem | Middleware de auth real |
+| 3 | CRITICAL | Ausência de autenticação/autorização | `routes/*` (todas as rotas) | token do login (`user_routes.py:210`) nunca é verificado em nenhuma rota; `PUT /users/<id>` aceita mudança de `role` sem checagem | Middleware de auth real + validação owner/admin |
 | 4 | CRITICAL | Exposição de credenciais | `services/notification_service.py:7-10`, `app.py:13` | SMTP e `SECRET_KEY` hardcoded | Variáveis de ambiente |
 | 5 | HIGH | Abstração pronta e não utilizada | `models/task.py:50-60` | `is_overdue()` existe; a mesma lógica está copiada em `task_routes.py:30,71,284`, `user_routes.py:171`, `report_routes.py:34` | Usar o método existente |
 | 6 | MEDIUM | Queries N+1 | `task_routes.py:41-57`, `report_routes.py:53-68` | busca usuário/categoria por task em loop, apesar dos relacionamentos declarados | `joinedload` |
@@ -70,7 +70,7 @@ estrutural, não sintático: nenhuma rota verifica identidade, e o campo
   # nenhuma rota lê o header Authorization nem verifica esse token
   ```
 - **Impacto:** qualquer chamador deleta usuários, promove a `role: admin` via `PUT /users/<id>`, ou acessa dados de qualquer conta.
-- **Correção proposta:** playbook item 4 — middleware `login_required`, reaproveitando `check_password`/`is_admin` já existentes.
+- **Correção proposta:** playbook item 4 — middleware `login_required`, reaproveitando `check_password`/`is_admin` já existentes, e checagem de proprietário/admin antes de acessar dados vinculados a outro usuário.
 - **Risco da correção:** médio — requer que o cliente passe a enviar o token.
 
 ### [CRITICAL-4] Exposição de credenciais hardcoded

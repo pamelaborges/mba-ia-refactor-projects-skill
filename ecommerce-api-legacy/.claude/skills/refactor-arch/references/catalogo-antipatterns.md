@@ -74,6 +74,12 @@ ninguém pensou nisso.
   da variável do token em todo o projeto)
 - Métodos como `is_admin()`/`check_password()` definidos e sem nenhum call site
 - Prefixo de rota `/admin` sem checagem real (o prefixo é só nomenclatura)
+- Rotas de relatório, listagem geral, exclusão, atualização ou criação de
+  entidades sem middleware mesmo quando expõem dados de outros usuários
+- Middleware que só verifica token, mas não valida proprietário/admin antes de
+  ler, atualizar ou deletar recurso vinculado a outro usuário
+- Endpoint público de cadastro aceitando campos privilegiados no body
+  (`role`, `is_admin`, `active`, permissões), permitindo self-service de admin
 
 Rebaixe para HIGH só quando o efeito de um acesso não autorizado é restrito
 (ex.: leitura de um relatório sem PII) — escrita/deleção sem auth é sempre

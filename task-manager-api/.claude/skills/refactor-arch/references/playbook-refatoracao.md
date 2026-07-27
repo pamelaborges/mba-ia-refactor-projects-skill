@@ -135,6 +135,24 @@ Se o projeto já tem infraestrutura pronta e não usada (`is_admin()`,
 `check_password()`), **reaproveitar essas funções** dentro do middleware em
 vez de reescrever a checagem.
 
+Depois de aplicar middleware, auditar a tabela completa de rotas: relatórios,
+listagens globais, escrita, deleção e rotas administrativas devem estar
+protegidas. Em endpoints públicos de cadastro/login, ignorar ou rejeitar campos
+privilegiados vindos do cliente (`role`, `is_admin`, `active`, permissões);
+atribua defaults seguros no servidor e mova mudanças de papel para uma rota
+administrativa protegida.
+
+Quando o domínio tiver proprietário do recurso (`user_id`, `owner_id`,
+`account_id`), a correção não termina no token: controllers devem verificar
+`current_user.id == recurso.user_id` ou `current_user.is_admin()` antes de
+retornar, atualizar, reatribuir ou deletar. Listagens globais devem virar
+admin-only ou filtrar por `current_user.id` para usuários comuns.
+
+Validação mínima: chamar cada rota sensível sem token e esperar 401/403; chamar
+cadastro público com `role=admin` e confirmar que o usuário resultante não vira
+admin; autenticar como usuário comum e tentar ler/alterar recurso de outro
+usuário, esperando 403.
+
 ---
 
 ## 5. Operações multi-etapa sem transação → Transação explícita com rollback

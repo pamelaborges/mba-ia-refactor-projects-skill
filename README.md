@@ -153,6 +153,8 @@ Relatórios completos em [`reports/audit-project-1.md`](reports/audit-project-1.
 |---|---|---|
 | Login (`code-smells-project`) | `email = "' OR '1'='1' --"` autentica como qualquer usuário | queries parametrizadas — bypass testado e bloqueado |
 | Rotas admin (3 projetos) | `/admin/*`, `/api/admin/*` públicas | exigem token/JWT; código-smells e ecommerce guardam por header, task-manager por JWT real |
+| Privilégio no cadastro (`task-manager-api`) | `POST /users` aceitava `role` enviado pelo cliente | cadastro público força `role=user`; alteração de papel fica restrita a usuário admin |
+| Acesso entre contas (`task-manager-api`) | usuário autenticado podia ler/alterar dados e tasks de outro usuário | controllers validam proprietário do recurso ou admin; listagens globais filtram usuário comum |
 | Senha (`code-smells-project`) | texto plano, devolvida em `GET /usuarios` | removida da serialização |
 | Senha (`ecommerce-api-legacy`) | `badCrypto` reversível (base64 concatenado) | `bcryptjs` com salt |
 | Senha (`task-manager-api`) | MD5 sem salt, devolvida até no `/login` | `werkzeug.security` + removida da serialização |
@@ -177,6 +179,8 @@ Fase 2 — Auditoria
 - [x] Mínimo de 5 findings identificados (10, 11 e 10 respectivamente)
 - [x] Detecção de APIs deprecated incluída no catálogo (MD5/`utcnow()` acionados nos 3 projetos)
 - [x] Skill pausou e pediu confirmação antes da Fase 3 (nos 3 projetos)
+- [x] Validação negativa de autenticação executada: rotas sensíveis sem token retornam 401/403 e cadastro público não permite `role=admin`
+- [x] Validação negativa de autorização executada: usuário comum não acessa nem modifica recursos de outro usuário
 
 Fase 3 — Refatoração
 - [x] Estrutura de diretórios segue padrão MVC (nos 2 projetos que não tinham; mantida e reforçada no 3º)

@@ -78,6 +78,13 @@ Leia `references/diretrizes-arquitetura.md` e `references/playbook-refatoracao.m
    - Subir a aplicação com o comando do baseline da Fase 1.
    - Exercitar os endpoints principais (ex.: `curl`) e comparar as respostas com
      o baseline — status code e formato do corpo.
+   - Para todo achado de autenticação/autorização, executar validação negativa:
+     chamadas sem token devem retornar 401/403 em rotas sensíveis, e cadastros
+     públicos não podem aceitar campos privilegiados como `role=admin`.
+     Quando houver dono do recurso, validar também que usuário comum não acessa
+     nem modifica recurso de outro usuário; somente admin pode fazer isso.
+   - Procurar novamente pelos sinais dos anti-patterns corrigidos (ex. APIs
+     deprecated, segredos hardcoded e handlers sem middleware) antes de concluir.
    - Se o projeto tiver testes, rodá-los.
 5. Se a validação falhar, corrija antes de declarar concluído — nunca entregue a
    aplicação quebrada.

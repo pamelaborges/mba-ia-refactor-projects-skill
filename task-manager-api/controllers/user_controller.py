@@ -28,6 +28,8 @@ def get_user(user_id):
     user = User.query.get(user_id)
     if not user:
         return jsonify({'error': 'Usuário não encontrado'}), 404
+    if request.current_user.id != user.id and not request.current_user.is_admin():
+        return jsonify({'error': 'Você só pode consultar sua própria conta'}), 403
 
     data = user.to_dict()
     data['tasks'] = [t.to_dict() for t in Task.query.filter_by(user_id=user_id).all()]
@@ -42,7 +44,7 @@ def create_user():
     name = data.get('name')
     email = data.get('email')
     password = data.get('password')
-    role = data.get('role', 'user')
+    role = 'user'
 
     if not name:
         return jsonify({'error': 'Nome é obrigatório'}), 400
@@ -157,6 +159,8 @@ def get_user_tasks(user_id):
     user = User.query.get(user_id)
     if not user:
         return jsonify({'error': 'Usuário não encontrado'}), 404
+    if request.current_user.id != user.id and not request.current_user.is_admin():
+        return jsonify({'error': 'Você só pode consultar suas próprias tasks'}), 403
 
     tasks = Task.query.filter_by(user_id=user_id).all()
     result = []

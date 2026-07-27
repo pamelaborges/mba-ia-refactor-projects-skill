@@ -1,11 +1,11 @@
 from flask import Blueprint
 
 from controllers import user_controller
-from middlewares.auth import login_required
+from middlewares.auth import admin_required, login_required
 
 user_bp = Blueprint('users', __name__)
 
-user_bp.add_url_rule('/users', 'get_users', login_required(user_controller.get_users), methods=['GET'])
+user_bp.add_url_rule('/users', 'get_users', admin_required(user_controller.get_users), methods=['GET'])
 user_bp.add_url_rule('/users/<int:user_id>', 'get_user', login_required(user_controller.get_user), methods=['GET'])
 user_bp.add_url_rule('/users', 'create_user', user_controller.create_user, methods=['POST'])
 user_bp.add_url_rule('/users/<int:user_id>', 'update_user', login_required(user_controller.update_user), methods=['PUT'])

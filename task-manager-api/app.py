@@ -10,11 +10,11 @@ from routes.report_routes import report_bp
 
 app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tasks.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = config.SECRET_KEY
 
-CORS(app)
+CORS(app, origins=config.ALLOWED_ORIGINS)
 db.init_app(app)
 
 app.register_blueprint(task_bp)

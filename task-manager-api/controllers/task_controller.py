@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 
 from flask import request, jsonify
 from sqlalchemy.orm import joinedload
@@ -10,14 +9,22 @@ from models.user import User
 from models.category import Category
 from services.notification_service import NotificationService
 from utils.helpers import process_task_data
+from utils.time import utc_now
 
 logger = logging.getLogger(__name__)
 notification_service = NotificationService()
 
 
+def _can_manage_task(task):
+    return request.current_user.is_admin() or task.user_id == request.current_user.id
+
+
 def get_tasks():
     try:
-        tasks = Task.query.options(joinedload(Task.user), joinedload(Task.category)).all()
+        query = Task.query.options(joinedload(Task.user), joinedload(Task.category))
+        if not request.current_user.is_admin():
+            query = query.filter(Task.user_id == request.current_user.id)
+        tasks = query.all()
         result = []
         for t in tasks:
             task_data = t.to_dict()
@@ -36,6 +43,8 @@ def get_task(task_id):
     task = Task.query.get(task_id)
     if not task:
         return jsonify({'error': 'Task não encontrada'}), 404
+    if not _can_manage_task(task):
+        return jsonify({'error': 'Você só pode consultar suas próprias tasks'}), 403
 
     data = task.to_dict()
     data['overdue'] = task.is_overdue()
@@ -57,6 +66,11 @@ def create_task():
 
     user_id = data.get('user_id')
     category_id = data.get('category_id')
+
+    if not request.current_user.is_admin():
+        if user_id and user_id != request.current_user.id:
+            return jsonify({'error': 'Você só pode criar tasks para sua própria conta'}), 403
+        user_id = request.current_user.id
 
     if user_id:
         user = User.query.get(user_id)
@@ -98,6 +112,8 @@ def update_task(task_id):
     task = Task.query.get(task_id)
     if not task:
         return jsonify({'error': 'Task não encontrada'}), 404
+    if not _can_manage_task(task):
+        return jsonify({'error': 'Você só pode atualizar suas próprias tasks'}), 403
 
     data = request.get_json()
     if not data:
@@ -108,6 +124,8 @@ def update_task(task_id):
         return jsonify({'error': erro}), 400
 
     if 'user_id' in data:
+        if not request.current_user.is_admin() and data['user_id'] != request.current_user.id:
+            return jsonify({'error': 'Apenas administradores podem reatribuir tasks'}), 403
         if data['user_id']:
             user = User.query.get(data['user_id'])
             if not user:
@@ -127,7 +145,7 @@ def update_task(task_id):
     if 'due_date' in campos:
         task.due_date = campos['due_date']
 
-    task.updated_at = datetime.utcnow()
+    task.updated_at = utc_now()
 
     try:
         db.session.commit()
@@ -143,6 +161,8 @@ def delete_task(task_id):
     task = Task.query.get(task_id)
     if not task:
         return jsonify({'error': 'Task não encontrada'}), 404
+    if not _can_manage_task(task):
+        return jsonify({'error': 'Você só pode deletar suas próprias tasks'}), 403
 
     try:
         db.session.delete(task)
@@ -177,21 +197,30 @@ def search_tasks():
     if priority:
         tasks = tasks.filter(Task.priority == int(priority))
 
-    if user_id:
-        tasks = tasks.filter(Task.user_id == int(user_id))
+    if request.current_user.is_admin():
+        if user_id:
+            tasks = tasks.filter(Task.user_id == int(user_id))
+    else:
+        if user_id and int(user_id) != request.current_user.id:
+            return jsonify({'error': 'Você só pode buscar suas próprias tasks'}), 403
+        tasks = tasks.filter(Task.user_id == request.current_user.id)
 
     results = tasks.all()
     return jsonify([t.to_dict() for t in results]), 200
 
 
 def task_stats():
-    total = Task.query.count()
-    pending = Task.query.filter_by(status='pending').count()
-    in_progress = Task.query.filter_by(status='in_progress').count()
-    done = Task.query.filter_by(status='done').count()
-    cancelled = Task.query.filter_by(status='cancelled').count()
+    query = Task.query
+    if not request.current_user.is_admin():
+        query = query.filter(Task.user_id == request.current_user.id)
 
-    overdue_count = sum(1 for t in Task.query.all() if t.is_overdue())
+    total = query.count()
+    pending = query.filter_by(status='pending').count()
+    in_progress = query.filter_by(status='in_progress').count()
+    done = query.filter_by(status='done').count()
+    cancelled = query.filter_by(status='cancelled').count()
+
+    overdue_count = sum(1 for t in query.all() if t.is_overdue())
 
     stats = {
         'total': total,
