@@ -118,10 +118,15 @@ Auditoria → Refatoração) e 5 arquivos de referência em Markdown:
 - No `task-manager-api`, a auditoria revelou que a estrutura de pastas já
   existia (`routes/`, `models/`, `services/`, `utils/`) mas as abstrações
   (`is_overdue()`, `NotificationService`, `process_task_data`) não eram
-  usadas — a correção certa ali não era reestruturar pastas, e sim passar a
-  chamar o que já existia. Isso confirmou que o catálogo precisa detectar
-  "abstração pronta e não usada" como categoria própria, não só duplicação
-  literal de código.
+  usadas. Isso confirmou que o catálogo precisa detectar "abstração pronta e
+  não usada" como categoria própria, não só duplicação literal de código. Na
+  primeira passada da Fase 3, o esforço foi só em passar a chamar o que já
+  existia sem tocar na estrutura de pastas — mas isso deixou a rota fazendo
+  a mesma orquestração de sempre, sem um controller fino entre rota e
+  domínio, contradizendo a própria proposta de reestruturação MVC do
+  relatório (`reports/audit-project-3.md`). Corrigido extraindo uma camada
+  `controllers/` (mesmo padrão dos outros 2 projetos), com as rotas virando
+  apenas registro de `Blueprint.add_url_rule` + guarda de autenticação.
 - Durante a validação, um processo de teste anterior (`code-smells-project`)
   ficou rodando em background e ocupou a porta 5000 ao validar o projeto
   seguinte — lembrete de que cada `Bash` do agente é um shell novo e `kill
